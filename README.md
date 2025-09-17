@@ -25,20 +25,20 @@ A Frappe-based application to schedule interviews by fetching an interviewer's a
    cd ms-calendar
 
 Install dependencies and set up your Frappe environment:
-
+```bash
 bench init frappe-bench --frappe-branch develop
 cd frappe-bench
 bench get-app ms_calendar ../ms-calendar
 bench new-site your-site.local
 bench --site your-site.local install-app ms_calendar
 bench start
-
-
+```
 ## Configure MS Graph Credentials in Frappe:
 
 
 Go to MS Graph Credentials doctype.
 Add (tenant_id, client_id, and client_secret).
+
 
 ## Usage
 
