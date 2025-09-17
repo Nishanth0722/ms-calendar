@@ -1,0 +1,48 @@
+{
+ "app": "Ms Calendar",
+ "charts": [],
+ "content": "[{\"id\":\"T3rojOYXWp\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">MS Calendar Integration</span>\",\"col\":12}},{\"id\":\"b4SBGhhF85\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"MS Graph Credentials\",\"col\":3}},{\"id\":\"iyjGROSiv7\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Schedule interview\",\"col\":3}}]",
+ "creation": "2025-09-17 15:26:32.774334",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "color-monthly-rank",
+ "idx": 0,
+ "indicator_color": "green",
+ "is_hidden": 0,
+ "label": "MS Calendar Integration",
+ "link_type": "DocType",
+ "links": [],
+ "modified": "2025-09-17 15:28:38.814807",
+ "modified_by": "Administrator",
+ "module": "Ms Calendar",
+ "name": "MS Calendar Integration",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "MS Calendar Integration",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 23.0,
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "MS Graph Credentials",
+   "link_to": "MS Graph Credentials",
+   "type": "DocType"
+  },
+  {
+   "color": "Yellow",
+   "doc_view": "List",
+   "label": "Schedule interview",
+   "link_to": "Schedule interview",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
+ "title": "MS Calendar Integration",
+ "type": "Workspace"
+}

@@ -1,0 +1,106 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:INVID{###}",
+ "creation": "2025-09-17 00:42:39.754086",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "interviewer_email",
+  "interview_date",
+  "check_availability",
+  "available_slots_section",
+  "available_slots",
+  "schedule_interview_section",
+  "event_title",
+  "attendees",
+  "column_break_qwyn",
+  "start_time",
+  "end_time"
+ ],
+ "fields": [
+  {
+   "default": "augustin.moses@azimpremjifoundation.org",
+   "fieldname": "interviewer_email",
+   "fieldtype": "Data",
+   "label": "Interviewer Email",
+   "options": "email"
+  },
+  {
+   "fieldname": "interview_date",
+   "fieldtype": "Date",
+   "label": "Interview Date"
+  },
+  {
+   "fieldname": "check_availability",
+   "fieldtype": "Button",
+   "label": "Check interview availability"
+  },
+  {
+   "fieldname": "available_slots_section",
+   "fieldtype": "Section Break",
+   "label": "Available slots"
+  },
+  {
+   "fieldname": "available_slots",
+   "fieldtype": "HTML",
+   "label": "Available slots"
+  },
+  {
+   "fieldname": "schedule_interview_section",
+   "fieldtype": "Section Break",
+   "label": "Schedule interview"
+  },
+  {
+   "fieldname": "event_title",
+   "fieldtype": "Data",
+   "label": "Event title"
+  },
+  {
+   "fieldname": "attendees",
+   "fieldtype": "Data",
+   "label": "Attendees"
+  },
+  {
+   "fieldname": "column_break_qwyn",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "start_time",
+   "fieldtype": "Time",
+   "label": "Start Time"
+  },
+  {
+   "fieldname": "end_time",
+   "fieldtype": "Time",
+   "label": "End Time"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-09-17 15:24:21.564764",
+ "modified_by": "Administrator",
+ "module": "Ms Calendar",
+ "name": "Schedule interview",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
