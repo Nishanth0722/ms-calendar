@@ -1,33 +1,25 @@
-### Ms Calendar
+# {{ project_name }}
 
-A custom calendar app for managing events and schedules.
+A Frappe-based application to schedule interviews by fetching an interviewer's availability from **Microsoft Outlook/Teams Calendar** using **Microsoft Graph API**.
 
-### Installation
+---
 
-You can install this app using the [bench](https://github.com/frappe/bench) CLI:
+## Features
+
+- Schedule interviews by selecting **interviewer email** and **interview date**.  
+- Fetch busy intervals from **Microsoft Graph API** (`getSchedule`).  
+- Displays a **visual schedule** with hourly slots (6 AM – 6 PM).  
+- Shows **only accepted meetings**.  
+- Clean, responsive design with dark theme and clear event blocks.  
+- Calculates and displays **free time slots** (optional).  
+- Handles API response safely, even with missing or partial data.  
+
+---
+
+## Installation
+
+1. Clone the repository:
 
 ```bash
-cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO --branch develop
-bench install-app ms_calendar
-```
-
-### Contributing
-
-This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
-
-```bash
-cd apps/ms_calendar
-pre-commit install
-```
-
-Pre-commit is configured to use the following tools for checking and formatting your code:
-
-- ruff
-- eslint
-- prettier
-- pyupgrade
-
-### License
-
-mit
+git clone {{ repo_url }}
+cd {{ project_folder }}
