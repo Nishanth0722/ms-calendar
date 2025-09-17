@@ -1,4 +1,4 @@
-# {{ project_name }}
+# MS calendar intergration
 
 A Frappe-based application to schedule interviews by fetching an interviewer's availability from **Microsoft Outlook/Teams Calendar** using **Microsoft Graph API**.
 
