@@ -76,79 +76,6 @@ def get_schedule_free_slots(interviewer_email, interview_date):
     except requests.exceptions.RequestException as e:
         frappe.throw(f"Graph API error: {resp.status_code} - {resp.text}")
 
-
-# import frappe, requests
-
-# @frappe.whitelist()
-# def create_calendar_event(event_title, start_datetime, end_datetime, interviewer_email, interviewee_email):
-#     """
-#     Schedules a new calendar event using Microsoft Graph.
-#     """
-#     try:
-#         credentials = frappe.get_single("MS Graph Credentials")
-#         tenant_id = credentials.tenant_id.strip()
-#         client_id = credentials.client_id.strip()
-#         client_secret = credentials.get_password("client_secret")
-#     except Exception as e:
-#         frappe.throw(f"Could not fetch MS Graph Credentials: {e}")
-    
-#     token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
-#     token_data = {
-#         "grant_type": "client_credentials",
-#         "client_id": client_id,
-#         "client_secret": client_secret,
-#         "scope": "https://graph.microsoft.com/.default"
-#     }
-    
-#     try:
-#         token_resp = requests.post(token_url, data=token_data).json()
-#         access_token = token_resp.get("access_token")
-#         if not access_token:
-#             frappe.throw(f"Failed to fetch access token: {token_resp}")
-#     except requests.exceptions.RequestException as e:
-#         frappe.throw(f"Token request failed: {e}")
-
-#     url = f"https://graph.microsoft.com/v1.0/users/{interviewer_email}/events"
-#     headers = {
-#         "Authorization": f"Bearer {access_token}",
-#         "Content-Type": "application/json"
-#     }
-
-#     event_body = {
-#         "subject": event_title,
-#         "start": {
-#             "dateTime": start_datetime,
-#             "timeZone": "Asia/Kolkata"
-#         },
-#         "end": {
-#             "dateTime": end_datetime,
-#             "timeZone": "Asia/Kolkata"
-#         },
-#         "attendees": [
-#             {
-#                 "emailAddress": {"address": interviewer_email, "name": "Interviewer"},
-#                 "type": "required"
-#             },
-#             {
-#                 "emailAddress": {"address": interviewee_email, "name": "Candidate"},
-#                 "type": "required"
-#             }
-#         ],
-#         "isOrganizer": True,
-#         "responseRequested": True,   
-#         "allowNewTimeProposals": True, 
-#     }
-
-#     try:
-#         resp = requests.post(url, headers=headers, json=event_body)
-#         resp.raise_for_status()
-        
-#         frappe.msgprint("✅ Interview scheduled successfully!")
-#         return {"event_id": resp.json().get("id")}
-    
-#     except requests.exceptions.RequestException as e:
-#         frappe.throw(f"Graph API error: {resp.status_code} - {resp.text}")
-
 import frappe, requests, uuid
 
 @frappe.whitelist()
@@ -164,7 +91,6 @@ def create_calendar_event(event_title, start_datetime, end_datetime, interviewer
     except Exception as e:
         frappe.throw(f"Could not fetch MS Graph Credentials: {e}")
     
-    # 🔑 Step 1: Get Access Token
     token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
     token_data = {
         "grant_type": "client_credentials",
@@ -181,14 +107,12 @@ def create_calendar_event(event_title, start_datetime, end_datetime, interviewer
     except requests.exceptions.RequestException as e:
         frappe.throw(f"Token request failed: {e}")
 
-    # 🔗 Step 2: Graph API URL with sendUpdates=all (forces email invite)
     url = f"https://graph.microsoft.com/v1.0/users/{interviewer_email}/events?sendUpdates=all"
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
 
-    # 📅 Step 3: Event body with Teams meeting enabled
     event_body = {
         "subject": event_title,
         "start": {
@@ -216,16 +140,14 @@ def create_calendar_event(event_title, start_datetime, end_datetime, interviewer
         "allowNewTimeProposals": True,
         "isOnlineMeeting": True,
         "onlineMeetingProvider": "teamsForBusiness",
-        "transactionId": str(uuid.uuid4())  # ensures idempotency
+        "transactionId": str(uuid.uuid4()) 
     }
-
-    # 🚀 Step 4: Call Graph API
     try:
         resp = requests.post(url, headers=headers, json=event_body)
         resp.raise_for_status()
         
         event = resp.json()
-        frappe.msgprint("✅ Interview scheduled and invites sent!")
+        frappe.msgprint("Interview scheduled and invites sent!")
         return {
             "event_id": event.get("id"),
             "join_url": event.get("onlineMeeting", {}).get("joinUrl")
