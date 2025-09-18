@@ -1,653 +1,16 @@
-// frappe.ui.form.on('Schedule interview', {
-//     refresh: function(frm) {
-//         frm.toggle_display('available_slots_section', false);
-//     },
-
-//     check_availability: function(frm) {
-//         if (!frm.doc.interviewer_email || !frm.doc.interview_date) {
-//             frappe.msgprint(__('Please enter interviewer email and interview date.'));
-//             return;
-//         }
-
-//         frm.get_field('available_slots').$wrapper.html(`
-//             <div class="text-center" style="margin-top: 20px;">
-//                 <i class="fa fa-spinner fa-spin fa-2x"></i>
-//                 <p>Checking availability...</p>
-//             </div>
-//         `);
-//         frm.toggle_display('available_slots_section', true);
-
-//         frappe.call({
-//             method: 'ms_calendar.api.msgraph.get_schedule_free_slots',
-//             args: {
-//                 interviewer_email: frm.doc.interviewer_email,
-//                 interview_date: frm.doc.interview_date
-//             },
-//             callback: function(r) {
-//                 if (r.message) {
-//                     const processedEvents = r.message.map(interval => {
-//                         const startUtc = moment.utc(interval.start.dateTime);
-//                         const endUtc = moment.utc(interval.end.dateTime);
-
-//                         const start = startUtc.local();
-//                         const end = endUtc.local();
-
-//                         return {
-//                             title: interval.subject || "Busy",
-//                             type: interval.location?.displayName || "Meeting",
-//                             attendee: interval.organizer?.emailAddress?.name || "Unknown",
-//                             startHour: start.hours() + start.minutes() / 60,
-//                             endHour: end.hours() + end.minutes() / 60,
-//                             displayStartTime: start.format("h:mm A"),
-//                             displayEndTime: end.format("h:mm A"),
-//                             color: '#1abc9c'
-//                         };
-//                     });
-//                     frm.events.display_schedule_design(frm, processedEvents);
-//                 } else {
-//                     frm.get_field('available_slots').$wrapper.html(`
-//                         <div class="alert alert-danger" role="alert">
-//                             An error occurred while fetching availability.
-//                         </div>
-//                     `);
-//                 }
-//             }
-//         });
-//     },
-
-//     display_schedule_design: function(frm, events) {
-//         const scheduleHtml = frm.events.generate_schedule_html(frm, events);
-//         frm.get_field('available_slots').$wrapper.html(scheduleHtml);
-//     },
-
-//     generate_schedule_html: function(frm, events) {
-//         const HOURLY_SLOT_WIDTH_PX = 80;
-//         const day_start_hour = 6;
-//         const day_end_hour = 18;
-
-//         // Time labels row with half-hour markers
-//         let timeSlotsHtml = '';
-//         for (let i = day_start_hour; i <= day_end_hour; i += 0.5) {
-//             const hour = i % 12 === 0 ? 12 : i % 12;
-//             const minutes = i % 1 === 0 ? '00' : '30';
-//             const ampm = i < 12 || i === 24 ? 'AM' : 'PM';
-//             const isHour = i % 1 === 0;
-//             timeSlotsHtml += `
-//                 <div class="time-slot" style="
-//                     min-width: ${HOURLY_SLOT_WIDTH_PX / 2}px;
-//                     height: ${isHour ? '50px' : '30px'};
-//                     display: flex;
-//                     align-items: center;
-//                     justify-content: center;
-//                     font-size: ${isHour ? '0.9em' : '0.75em'};
-//                     color: ${isHour ? '#333' : '#666'};
-//                     border-right: 1px solid #e0e0e0;
-//                     border-bottom: 1px solid #e0e0e0;
-//                     background-color: ${isHour ? '#f5f5f5' : '#fafafa'};
-//                     box-sizing: border-box;
-//                     text-align: center;
-//                 ">
-//                     ${isHour ? `${hour}:${minutes} ${ampm}` : `:${minutes}`}
-//                 </div>
-//             `;
-//         }
-
-//         // Events row with free slot indicators
-//         let eventsHtml = '';
-//         events.forEach((event, index) => {
-//             if (event.endHour <= day_start_hour || event.startHour >= day_end_hour) {
-//                 return;
-//             }
-
-//             const startHour = Math.max(event.startHour, day_start_hour);
-//             const endHour = Math.min(event.endHour, day_end_hour);
-//             const left = (startHour - day_start_hour) * HOURLY_SLOT_WIDTH_PX;
-//             const width = (endHour - startHour) * HOURLY_SLOT_WIDTH_PX;
-
-//             eventsHtml += `
-//                 <div class="event" 
-//                      role="button" 
-//                      tabindex="0" 
-//                      aria-label="${event.title} from ${event.displayStartTime} to ${event.displayEndTime}"
-//                      style="
-//                         position: absolute;
-//                         top: 4px;
-//                         bottom: 4px;
-//                         left: ${left}px;
-//                         width: ${width}px;
-//                         margin: 0 2px;
-//                         background: linear-gradient(135deg, ${event.color || '#3498db'}, ${event.color ? darkenColor(event.color, 20) : '#2980b9'});
-//                         color: white;
-//                         border-radius: 6px;
-//                         padding: 6px 8px;
-//                         font-size: 0.85em;
-//                         box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-//                         overflow: hidden;
-//                         white-space: nowrap;
-//                         text-overflow: ellipsis;
-//                         cursor: pointer;
-//                         transition: transform 0.2s, box-shadow 0.2s;
-//                      "
-//                      onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.2)';"
-//                      onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.15)';">
-//                     <div style="font-weight: 600;">${event.title}</div>
-//                     <div style="font-size: 0.75em; opacity: 0.9;">
-//                         ${event.displayStartTime} - ${event.displayEndTime}
-//                     </div>
-//                     <div class="tooltip" style="
-//                         visibility: hidden;
-//                         position: absolute;
-//                         top: -40px;
-//                         left: 50%;
-//                         transform: translateX(-50%);
-//                         background-color: #333;
-//                         color: white;
-//                         padding: 4px 8px;
-//                         border-radius: 4px;
-//                         font-size: 0.75em;
-//                         z-index: 10;
-//                     ">
-//                         ${event.attendee} (${event.type})
-//                     </div>
-//                 </div>
-//             `;
-//         });
-
-//         // Add free slot indicators
-//         const freeSlots = frm.events.calculate_free_slots(events, day_start_hour, day_end_hour);
-//         freeSlots.forEach(slot => {
-//             const left = (slot.start - day_start_hour) * HOURLY_SLOT_WIDTH_PX;
-//             const width = (slot.end - slot.start) * HOURLY_SLOT_WIDTH_PX;
-//             eventsHtml += `
-//                 <div class="free-slot" style="
-//                     position: absolute;
-//                     top: 4px;
-//                     bottom: 4px;
-//                     left: ${left}px;
-//                     width: ${width}px;
-//                     margin: 0 2px;
-//                     background-color: rgba(46, 204, 113, 0.2);
-//                     border: 2px dashed #2ecc71;
-//                     border-radius: 6px;
-//                     display: flex;
-//                     align-items: center;
-//                     justify-content: center;
-//                     font-size: 0.85em;
-//                     color: #2ecc71;
-//                     font-weight: 500;
-//                     cursor: default;
-//                 ">
-//                     Free
-//                 </div>
-//             `;
-//         });
-
-//         return `
-//             <style>
-//                 .schedule-container {
-//                     width: 100%;
-//                     max-width: 1000px;
-//                     margin: 0 auto;
-//                     border: 1px solid #d0d0d0;
-//                     border-radius: 8px;
-//                     background: linear-gradient(to bottom, #ffffff, #f8f9fa);
-//                     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-//                     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-//                     overflow: hidden;
-//                 }
-//                 .schedule-container header {
-//                     padding: 12px 16px;
-//                     background: #f1f3f5;
-//                     border-bottom: 1px solid #d0d0d0;
-//                     font-weight: 600;
-//                     font-size: 1.1em;
-//                     color: #2c3e50;
-//                 }
-//                 .schedule-grid {
-//                     display: flex;
-//                     flex-direction: column;
-//                     background: repeating-linear-gradient(
-//                         to right,
-//                         #e0e0e0,
-//                         #e0e0e0 1px,
-//                         transparent 1px,
-//                         transparent ${HOURLY_SLOT_WIDTH_PX / 2}px
-//                     );
-//                 }
-//                 .time-row {
-//                     display: flex;
-//                     border-bottom: 1px solid #d0d0d0;
-//                     overflow-x: auto;
-//                     scrollbar-width: thin;
-//                     scrollbar-color: #adb5bd #f1f3f5;
-//                 }
-//                 .time-row::-webkit-scrollbar {
-//                     height: 8px;
-//                 }
-//                 .time-row::-webkit-scrollbar-thumb {
-//                     background: #adb5bd;
-//                     border-radius: 4px;
-//                 }
-//                 .events-row {
-//                     position: relative;
-//                     height: 120px;
-//                     overflow-x: auto;
-//                     overflow-y: hidden;
-//                     scrollbar-width: thin;
-//                     scrollbar-color: #adb5bd #f1f3f5;
-//                 }
-//                 .events-row::-webkit-scrollbar {
-//                     height: 8px;
-//                 }
-//                 .events-row::-webkit-scrollbar-thumb {
-//                     background: #adb5bd;
-//                     border-radius: 4px;
-//                 }
-//                 .event:hover .tooltip {
-//                     visibility: visible;
-//                 }
-//                 @media (max-width: 768px) {
-//                     .time-slot {
-//                         min-width: ${HOURLY_SLOT_WIDTH_PX / 1.5}px !important;
-//                         font-size: ${0.75 * 0.9}em !important;
-//                     }
-//                     .event, .free-slot {
-//                         font-size: 0.75em !important;
-//                         padding: 4px 6px !important;
-//                     }
-//                     .schedule-container header {
-//                         font-size: 1em;
-//                     }
-//                 }
-//             </style>
-//             <div class="schedule-container">
-//                 <header>
-//                     ${moment(frm.doc.interview_date).format('dddd, MMMM DD, YYYY')}
-//                 </header>
-//                 <div class="schedule-grid">
-//                     <div class="time-row">
-//                         ${timeSlotsHtml}
-//                     </div>
-//                     <div class="events-row">
-//                         ${eventsHtml}
-//                     </div>
-//                 </div>
-//             </div>
-//         `;
-//     },
-
-//     calculate_free_slots: function(events, day_start_hour, day_end_hour) {
-//         const slots = [];
-//         let currentHour = day_start_hour;
-
-//         const sortedEvents = events
-//             .filter(e => e.endHour > day_start_hour && e.startHour < day_end_hour)
-//             .sort((a, b) => a.startHour - b.startHour);
-
-//         sortedEvents.forEach(event => {
-//             const start = Math.max(event.startHour, day_start_hour);
-//             if (currentHour < start) {
-//                 slots.push({ start: currentHour, end: start });
-//             }
-//             currentHour = Math.max(currentHour, event.endHour);
-//         });
-
-//         if (currentHour < day_end_hour) {
-//             slots.push({ start: currentHour, end: day_end_hour });
-//         }
-
-//         return slots;
-//     }
-// });
-
-// // Helper function to darken color for gradient
-// function darkenColor(hex, percent) {
-//     // Remove # from hex code
-//     let color = hex.replace('#', '');
-//     // Parse RGB components
-//     let r = parseInt(color.substr(0, 2), 16);
-//     let g = parseInt(color.substr(2, 2), 16);
-//     let b = parseInt(color.substr(4, 2), 16);
-    
-//     // Darken by percentage
-//     r = Math.round(r * (100 - percent) / 100);
-//     g = Math.round(g * (100 - percent) / 100);
-//     b = Math.round(b * (100 - percent) / 100);
-    
-//     // Ensure values stay within 0-255
-//     r = r < 0 ? 0 : r;
-//     g = g < 0 ? 0 : g;
-//     b = b < 0 ? 0 : b;
-    
-//     // Convert back to hex
-//     return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).padStart(6, '0')}`;
-// }
-
-// frappe.ui.form.on('Schedule interview', {
-//     refresh: function(frm) {
-//         frm.toggle_display('available_slots_section', false);
-//     },
-
-//     check_availability: function(frm) {
-//         if (!frm.doc.interviewer_email || !frm.doc.interview_date) {
-//             frappe.msgprint(__('Please enter interviewer email and interview date.'));
-//             return;
-//         }
-
-//         frm.get_field('available_slots').$wrapper.html(`
-//             <div class="text-center" style="margin-top: 20px;">
-//                 <i class="fa fa-spinner fa-spin fa-2x"></i>
-//                 <p>Checking availability...</p>
-//             </div>
-//         `);
-//         frm.toggle_display('available_slots_section', true);
-
-//         frappe.call({
-//             method: 'ms_calendar.api.msgraph.get_schedule_free_slots',
-//             args: {
-//                 interviewer_email: frm.doc.interviewer_email,
-//                 interview_date: frm.doc.interview_date
-//             },
-//             callback: function(r) {
-//                 if (r.message) {
-//                     const processedEvents = r.message.map(interval => {
-//                         const startUtc = moment.utc(interval.start.dateTime);
-//                         const endUtc = moment.utc(interval.end.dateTime);
-
-//                         const start = startUtc.local();
-//                         const end = endUtc.local();
-
-//                         return {
-//                             title: interval.subject || "Busy",
-//                             type: interval.location?.displayName || "Meeting",
-//                             attendee: interval.organizer?.emailAddress?.name || "Unknown",
-//                             startHour: start.hours() + start.minutes() / 60,
-//                             endHour: end.hours() + end.minutes() / 60,
-//                             displayStartTime: start.format("h:mm A"),
-//                             displayEndTime: end.format("h:mm A"),
-//                             color: '#e74c3c' // Changed to red for busy slots
-//                         };
-//                     });
-//                     frm.events.display_schedule_design(frm, processedEvents);
-//                 } else {
-//                     frm.get_field('available_slots').$wrapper.html(`
-//                         <div class="alert alert-danger" role="alert">
-//                             An error occurred while fetching availability.
-//                         </div>
-//                     `);
-//                 }
-//             }
-//         });
-//     },
-
-//     display_schedule_design: function(frm, events) {
-//         const scheduleHtml = frm.events.generate_schedule_html(frm, events);
-//         frm.get_field('available_slots').$wrapper.html(scheduleHtml);
-//     },
-
-//     generate_schedule_html: function(frm, events) {
-//         const MAX_CONTAINER_WIDTH = 1000; // Max width of the schedule container in pixels
-//         const day_start_hour = 6;   // 6 AM
-//         const day_end_hour = 18;    // 6 PM
-//         const total_hours = day_end_hour - day_start_hour; // 12 hours
-//         const total_half_hours = total_hours * 2; // 24 half-hour slots
-//         const HOURLY_SLOT_WIDTH_PX = Math.floor(MAX_CONTAINER_WIDTH / total_hours); // Dynamic width per hour
-//         const HALF_HOURLY_SLOT_WIDTH_PX = HOURLY_SLOT_WIDTH_PX / 2; // Width per half-hour
-
-//         // Time labels row with half-hour markers
-//         let timeSlotsHtml = '';
-//         for (let i = day_start_hour; i <= day_end_hour; i += 0.5) {
-//             const hour = i % 12 === 0 ? 12 : i % 12;
-//             const minutes = i % 1 === 0 ? '00' : '30';
-//             const ampm = i < 12 || i === 24 ? 'AM' : 'PM';
-//             const isHour = i % 1 === 0;
-//             timeSlotsHtml += `
-//                 <div class="time-slot" style="
-//                     width: ${HALF_HOURLY_SLOT_WIDTH_PX}px;
-//                     height: ${isHour ? '50px' : '30px'};
-//                     display: flex;
-//                     align-items: center;
-//                     justify-content: center;
-//                     font-size: ${isHour ? '0.9em' : '0.75em'};
-//                     color: ${isHour ? '#333' : '#666'};
-//                     border-right: 1px solid #e0e0e0;
-//                     border-bottom: 1px solid #e0e0e0;
-//                     background-color: ${isHour ? '#f5f5f5' : '#fafafa'};
-//                     box-sizing: border-box;
-//                     text-align: center;
-//                     flex-shrink: 0;
-//                 ">
-//                     ${isHour ? `${hour}:${minutes} ${ampm}` : `:${minutes}`}
-//                 </div>
-//             `;
-//         }
-
-//         // Events row with free slot indicators
-//         let eventsHtml = '';
-//         events.forEach((event, index) => {
-//             if (event.endHour <= day_start_hour || event.startHour >= day_end_hour) {
-//                 return;
-//             }
-
-//             const startHour = Math.max(event.startHour, day_start_hour);
-//             const endHour = Math.min(event.endHour, day_end_hour);
-//             const left = (startHour - day_start_hour) * HOURLY_SLOT_WIDTH_PX;
-//             const width = (endHour - startHour) * HOURLY_SLOT_WIDTH_PX;
-
-//             eventsHtml += `
-//                 <div class="event" 
-//                      role="button" 
-//                      tabindex="0" 
-//                      aria-label="${event.title} from ${event.displayStartTime} to ${event.displayEndTime}"
-//                      style="
-//                         position: absolute;
-//                         top: 4px;
-//                         bottom: 4px;
-//                         left: ${left}px;
-//                         width: ${width}px;
-//                         margin: 0 2px;
-//                         background: linear-gradient(135deg, ${event.color || '#e74c3c'}, ${event.color ? darkenColor(event.color, 20) : '#c0392b'});
-//                         color: white;
-//                         border-radius: 6px;
-//                         padding: 6px 8px;
-//                         font-size: 0.85em;
-//                         box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-//                         overflow: hidden;
-//                         white-space: nowrap;
-//                         text-overflow: ellipsis;
-//                         cursor: pointer;
-//                         transition: transform 0.2s, box-shadow 0.2s;
-//                      "
-//                      onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.2)'; this.querySelector('.tooltip').style.visibility='visible';"
-//                      onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.15)'; this.querySelector('.tooltip').style.visibility='hidden';">
-//                     <div style="font-weight: 600;">${event.title}</div>
-//                     <div style="font-size: 0.75em; opacity: 0.9;">
-//                         ${event.displayStartTime} - ${event.displayEndTime}
-//                     </div>
-//                     <div class="tooltip" style="
-//                         visibility: hidden;
-//                         position: absolute;
-//                         top: -50px;
-//                         left: 50%;
-//                         transform: translateX(-50%);
-//                         background-color: #2c3e50;
-//                         color: white;
-//                         padding: 6px 10px;
-//                         border-radius: 4px;
-//                         font-size: 0.8em;
-//                         z-index: 10;
-//                         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-//                         white-space: nowrap;
-//                     ">
-//                         ${event.attendee} (${event.type})
-//                     </div>
-//                 </div>
-//             `;
-//         });
-
-//         // Add free slot indicators
-//         const freeSlots = frm.events.calculate_free_slots(events, day_start_hour, day_end_hour);
-//         freeSlots.forEach(slot => {
-//             const left = (slot.start - day_start_hour) * HOURLY_SLOT_WIDTH_PX;
-//             const width = (slot.end - slot.start) * HOURLY_SLOT_WIDTH_PX;
-//             eventsHtml += `
-//                 <div class="free-slot" style="
-//                     position: absolute;
-//                     top: 4px;
-//                     bottom: 4px;
-//                     left: ${left}px;
-//                     width: ${width}px;
-//                     margin: 0 2px;
-//                     background-color: rgba(46, 204, 113, 0.2);
-//                     border: 2px dashed #2ecc71;
-//                     border-radius: 6px;
-//                     display: flex;
-//                     align-items: center;
-//                     justify-content: center;
-//                     font-size: 0.85em;
-//                     color: #2ecc71;
-//                     font-weight: 500;
-//                     cursor: default;
-//                 ">
-//                     Free
-//                 </div>
-//             `;
-//         });
-
-//         return `
-//             <style>
-//                 .schedule-container {
-//                     width: 100%;
-//                     max-width: ${MAX_CONTAINER_WIDTH}px;
-//                     margin: 0 auto;
-//                     border: 1px solid #d0d0d0;
-//                     border-radius: 8px;
-//                     background: linear-gradient(to bottom, #ffffff, #f8f9fa);
-//                     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-//                     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-//                     overflow: hidden;
-//                 }
-//                 .schedule-container header {
-//                     padding: 12px 16px;
-//                     background: #f1f3f5;
-//                     border-bottom: 1px solid #d0d0d0;
-//                     font-weight: 600;
-//                     font-size: 1.1em;
-//                     color: #2c3e50;
-//                 }
-//                 .schedule-grid {
-//                     display: flex;
-//                     flex-direction: column;
-//                     background: repeating-linear-gradient(
-//                         to right,
-//                         #e0e0e0,
-//                         #e0e0e0 1px,
-//                         transparent 1px,
-//                         transparent ${HALF_HOURLY_SLOT_WIDTH_PX}px
-//                     );
-//                 }
-//                 .time-row {
-//                     display: flex;
-//                     flex-wrap: nowrap;
-//                     border-bottom: 1px solid #d0d0d0;
-//                 }
-//                 .events-row {
-//                     position: relative;
-//                     height: 120px;
-//                     overflow: hidden;
-//                 }
-//                 @media (max-width: ${MAX_CONTAINER_WIDTH}px) {
-//                     .time-slot {
-//                         width: ${HALF_HOURLY_SLOT_WIDTH_PX * 0.8}px !important;
-//                         font-size: ${0.75 * 0.9}em !important;
-//                     }
-//                     .event, .free-slot {
-//                         font-size: 0.75em !important;
-//                         padding: 4px 6px !important;
-//                     }
-//                     .schedule-container header {
-//                         font-size: 1em;
-//                     }
-//                     .tooltip {
-//                         font-size: 0.7em !important;
-//                         padding: 4px 8px !important;
-//                     }
-//                 }
-//             </style>
-//             <div class="schedule-container">
-//                 <header>
-//                     ${moment(frm.doc.interview_date).format('dddd, MMMM DD, YYYY')}
-//                 </header>
-//                 <div class="schedule-grid">
-//                     <div class="time-row">
-//                         ${timeSlotsHtml}
-//                     </div>
-//                     <div class="events-row">
-//                         ${eventsHtml}
-//                     </div>
-//                 </div>
-//             </div>
-//         `;
-//     },
-
-//     calculate_free_slots: function(events, day_start_hour, day_end_hour) {
-//         const slots = [];
-//         let currentHour = day_start_hour;
-
-//         const sortedEvents = events
-//             .filter(e => e.endHour > day_start_hour && e.startHour < day_end_hour)
-//             .sort((a, b) => a.startHour - b.startHour);
-
-//         sortedEvents.forEach(event => {
-//             const start = Math.max(event.startHour, day_start_hour);
-//             if (currentHour < start) {
-//                 slots.push({ start: currentHour, end: start });
-//             }
-//             currentHour = Math.max(currentHour, event.endHour);
-//         });
-
-//         if (currentHour < day_end_hour) {
-//             slots.push({ start: currentHour, end: day_end_hour });
-//         }
-
-//         return slots;
-//     }
-// });
-
-// // Helper function to darken color for gradient
-// function darkenColor(hex, percent) {
-//     let color = hex.replace('#', '');
-//     let r = parseInt(color.substr(0, 2), 16);
-//     let g = parseInt(color.substr(2, 2), 16);
-//     let b = parseInt(color.substr(4, 2), 16);
-    
-//     r = Math.round(r * (100 - percent) / 100);
-//     g = Math.round(g * (100 - percent) / 100);
-//     b = Math.round(b * (100 - percent) / 100);
-    
-//     r = r < 0 ? 0 : r;
-//     g = g < 0 ? 0 : g;
-//     b = b < 0 ? 0 : b;
-    
-//     return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).padStart(6, '0')}`;
-// }
-
 frappe.ui.form.on('Schedule interview', {
     refresh: function(frm) {
         frm.toggle_display('available_slots_section', false);
     },
-after_save: function(frm) {
-        // Ensure required fields are present
+
+    after_save: function(frm) {
         if (!frm.doc.interviewer_email || !frm.doc.attendees || !frm.doc.interview_date || !frm.doc.start_time || !frm.doc.end_time) {
             frappe.msgprint(__('Please fill Interviewer Email, Interviewee Email, Date, Start Time and End Time.'));
             return;
         }
-
-        // Build ISO datetime strings from date + time
         const startDateTime = moment(frm.doc.interview_date + " " + frm.doc.start_time).format("YYYY-MM-DDTHH:mm:ss");
         const endDateTime = moment(frm.doc.interview_date + " " + frm.doc.end_time).format("YYYY-MM-DDTHH:mm:ss");
 
-        // Call the backend method
         frappe.call({
             method: "ms_calendar.api.msgraph.create_calendar_event",
             args: {
@@ -678,6 +41,38 @@ after_save: function(frm) {
             }
         });
     },
+    interview_date: function(frm) {
+        const today = moment().startOf('day');
+        const interviewDate = moment(frm.doc.interview_date, "YYYY-MM-DD");
+
+        if (interviewDate.isBefore(today)) {
+            frappe.msgprint(__('Interview Date cannot be in the past.'));
+            frm.set_value('interview_date', null); // reset the field
+        }
+    },
+
+   start_time: function(frm) {
+    if (frm.doc.end_time && frm.doc.start_time) {
+        const startDateTime = moment(frm.doc.interview_date + " " + frm.doc.start_time);
+        const endDateTime = moment(frm.doc.interview_date + " " + frm.doc.end_time);
+
+        if (startDateTime.isAfter(endDateTime)) {
+            frappe.msgprint(__('Start Time must be less than End Time.'));
+            frm.set_value('start_time', null); 
+        }
+    }
+},
+
+    end_time: function(frm) {
+        if (frm.doc.start_time && frm.doc.end_time) {
+            const startDateTime = moment(frm.doc.interview_date + " " + frm.doc.start_time);
+            const endDateTime = moment(frm.doc.interview_date + " " + frm.doc.end_time);
+            if (endDateTime.isBefore(startDateTime)) {
+                frappe.msgprint(__('End Time must be greater than Start Time.'));
+                frm.set_value('end_time', null); 
+            }
+        }
+},
     check_availability: function(frm) {
         if (!frm.doc.interviewer_email || !frm.doc.interview_date) {
             frappe.msgprint({
@@ -722,7 +117,7 @@ after_save: function(frm) {
                             endHour: end.hours() + end.minutes() / 60,
                             displayStartTime: start.format("h:mm A"),
                             displayEndTime: end.format("h:mm A"),
-                            color: '#e74c3c' // Red for busy slots
+                            color: '#e74c3c'
                         };
                     });
                     frm.events.display_schedule_design(frm, processedEvents);
@@ -744,7 +139,6 @@ after_save: function(frm) {
         const scheduleHtml = frm.events.generate_schedule_html(frm, events);
         frm.get_field('available_slots').$wrapper.html(scheduleHtml);
         
-        // Add event listeners after the HTML is rendered
         setTimeout(() => {
             $('.schedule-event').on('click', function() {
                 const startTime = $(this).data('start');
@@ -757,16 +151,15 @@ after_save: function(frm) {
                     title: 'Event Details',
                     message: `
                         <div class="event-details">
-                            <p><strong>${title}</strong></p>
+                            <p><strong>${title ? title : "Free Slot"}</strong></p>
                             <p><strong>Time:</strong> ${startTime} - ${endTime}</p>
-                            <p><strong>Attendee:</strong> ${attendee}</p>
-                            <p><strong>Type:</strong> ${type}</p>
+                            ${title ? `<p><strong>Type:</strong> ${type}</p>` : ""}
                         </div>
                     `
                 });
+
             });
             
-            // Add click handler for free slots
             $('.event-free').on('click', function() {
                 const startTime = $(this).data('start');
                 const endTime = $(this).data('end');
@@ -775,7 +168,6 @@ after_save: function(frm) {
                     title: 'Available Time Slot',
                     message: `
                         <div class="event-details">
-                            <p><strong>Available Slot</strong></p>
                             <p><strong>Time:</strong> ${startTime} - ${endTime}</p>
                             <p>This time slot is available for scheduling.</p>
                         </div>
@@ -786,26 +178,44 @@ after_save: function(frm) {
     },
 
     generate_schedule_html: function(frm, events) {
-        const day_start_hour = 6;   // 6 AM
-        const day_end_hour = 18;    // 6 PM
-        const total_hours = day_end_hour - day_start_hour; // 12 hours
-        const hours_per_screen = 12; // Show 12 hours on screen
-        const HOUR_WIDTH_PX = 80; // Width of each hour column
-
-        // Time labels row
+        const day_start_hour = 8;      // Changed from 6 to 8 AM
+        const day_end_hour = 18;       // 6 PM (18:00 in 24h format)
+        const total_hours = day_end_hour - day_start_hour; // 10 hours
+        const SLOT_WIDTH_PX = 80;      // Width for each 30-minute slot
+        
+        // Generate time labels with 30-minute intervals
         let timeSlotsHtml = '';
-        for (let i = day_start_hour; i <= day_end_hour; i++) {
+        for (let i = day_start_hour; i < day_end_hour; i++) {
+            // Full hour
             const hour = i % 12 === 0 ? 12 : i % 12;
             const ampm = i < 12 ? 'AM' : 'PM';
+            
+            // Add full hour slot
             timeSlotsHtml += `
-                <div class="time-slot-hour" style="width: ${HOUR_WIDTH_PX}px;">
-                    <div class="hour-label">${hour} ${ampm}</div>
-                    <div class="hour-line"></div>
+                <div class="time-slot-group" style="width: ${SLOT_WIDTH_PX * 2}px;">
+                    <div class="time-slot-hour">
+                        <div class="hour-label major">${hour}:00 ${ampm}</div>
+                        <div class="hour-line major"></div>
+                    </div>
+                    <div class="time-slot-half">
+                        <div class="hour-label minor">${hour}:30</div>
+                        <div class="hour-line minor"></div>
+                    </div>
                 </div>
             `;
         }
+        
+        // Add final hour marker
+        const finalHour = day_end_hour % 12 === 0 ? 12 : day_end_hour % 12;
+        const finalAmpm = day_end_hour < 12 ? 'AM' : 'PM';
+        timeSlotsHtml += `
+            <div class="time-slot-final" style="width: ${SLOT_WIDTH_PX}px;">
+                <div class="hour-label major">${finalHour}:00 ${finalAmpm}</div>
+                <div class="hour-line major"></div>
+            </div>
+        `;
 
-        // Events row with free slot indicators
+        // Generate events HTML
         let eventsHtml = '';
         events.forEach((event, index) => {
             if (event.endHour <= day_start_hour || event.startHour >= day_end_hour) {
@@ -814,8 +224,10 @@ after_save: function(frm) {
 
             const startHour = Math.max(event.startHour, day_start_hour);
             const endHour = Math.min(event.endHour, day_end_hour);
-            const left = (startHour - day_start_hour) * HOUR_WIDTH_PX;
-            const width = (endHour - startHour) * HOUR_WIDTH_PX;
+            
+            // Calculate position and width based on 30-minute slots
+            const leftPercentage = ((startHour - day_start_hour) / total_hours) * 100;
+            const widthPercentage = ((endHour - startHour) / total_hours) * 100;
 
             eventsHtml += `
                 <div class="schedule-event event-busy" 
@@ -824,7 +236,7 @@ after_save: function(frm) {
                      data-title="${event.title}"
                      data-attendee="${event.attendee}"
                      data-type="${event.type}"
-                     style="left: ${left}px; width: ${width}px;">
+                     style="left: ${leftPercentage}%; width: ${widthPercentage}%;">
                     <div class="event-content">
                         <div class="event-title">${event.title}</div>
                         <div class="event-time">${event.displayStartTime} - ${event.displayEndTime}</div>
@@ -832,19 +244,19 @@ after_save: function(frm) {
                     <div class="event-tooltip">
                         <strong>${event.title}</strong><br>
                         ${event.displayStartTime} - ${event.displayEndTime}<br>
-                        <em>${event.attendee} (${event.type})</em>
+                        <em>(${event.type})</em>
                     </div>
                 </div>
             `;
         });
 
-        // Add free slot indicators
+        // Generate free slots
         const freeSlots = frm.events.calculate_free_slots(events, day_start_hour, day_end_hour);
         freeSlots.forEach(slot => {
-            const left = (slot.start - day_start_hour) * HOUR_WIDTH_PX;
-            const width = (slot.end - slot.start) * HOUR_WIDTH_PX;
+            const leftPercentage = ((slot.start - day_start_hour) / total_hours) * 100;
+            const widthPercentage = ((slot.end - slot.start) / total_hours) * 100;
             
-            if (width > 0) {
+            if (widthPercentage > 0) {
                 const startFormatted = moment().hour(Math.floor(slot.start)).minute((slot.start % 1) * 60).format("h:mm A");
                 const endFormatted = moment().hour(Math.floor(slot.end)).minute((slot.end % 1) * 60).format("h:mm A");
                 
@@ -852,7 +264,7 @@ after_save: function(frm) {
                     <div class="schedule-event event-free" 
                          data-start="${startFormatted}"
                          data-end="${endFormatted}"
-                         style="left: ${left}px; width: ${width}px;">
+                         style="left: ${leftPercentage}%; width: ${widthPercentage}%;">
                         <div class="event-content">
                             <div class="event-title">Available</div>
                             <div class="event-time">${startFormatted} - ${endFormatted}</div>
@@ -867,221 +279,345 @@ after_save: function(frm) {
         });
 
         return `
-            <div class="professional-schedule-container">
+            <div class="schedule-container">
                 <div class="schedule-header">
-                    <h4>${moment(frm.doc.interview_date).format('dddd, MMMM DD, YYYY')}</h4>
-                    <p class="text-muted">Showing schedule for ${frm.doc.interviewer_email} (6 AM - 6 PM)</p>
+                 <div class="header-content">
+                        <div class="date-section">
+                            <h2 class="schedule-date">${moment(frm.doc.interview_date).format('dddd, MMMM DD, YYYY')}</h2>
+                        </div>
+                        <div class="email-info">
+                            <span class="email-label">Calendar Events for</span>
+                            <span class="email-address">${frm.doc.interviewer_email}</span>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="schedule-legend">
-                    <div class="legend-item">
-                        <span class="legend-color busy"></span>
-                        <span class="legend-text">Busy</span>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-color free"></span>
-                        <span class="legend-text">Available</span>
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <div class="legend-dot busy"></div>
+                            <span>Busy</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot available"></div>
+                            <span>Available</span>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="timeline-container">
-                    <div class="time-scale">
+                <div class="timeline-section">
+                    <div class="time-labels">
                         ${timeSlotsHtml}
                     </div>
                     
-                    <div class="schedule-timeline">
+                    <div class="timeline-grid">
+                        <div class="timeline-track">
+                            </div>
                         ${eventsHtml}
                     </div>
                 </div>
                 
                 <div class="schedule-footer">
-                    <p class="text-muted">Click on any time block to view details</p>
+                    <div class="footer-stats">
+                        
+                    </div>
                 </div>
             </div>
             
             <style>
-                .professional-schedule-container {
-                    width: 100%;
-                    max-width: 1000px;
+                .schedule-container {
+                    max-width: 1200px;
                     margin: 0 auto;
-                    border: 1px solid #e0e0e0;
+                    background: white;
                     border-radius: 8px;
-                    background: #ffffff;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-                    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+                    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+                    border: 1px solid #e2e8f0;
                     overflow: hidden;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
                 }
                 
                 .schedule-header {
-                    padding: 1.25rem 1.5rem;
-                    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-                    border-bottom: 1px solid #e0e0e0;
+                    padding: 1rem;
+                    border-bottom: 1px solid #e2e8f0;
+                    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
                 }
                 
-                .schedule-header h4 {
-                    margin: 0;
-                    color: #2c3e50;
-                    font-weight: 600;
+                .header-content {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                }
+                
+                .date-section {
+                    flex: 1;
+                }
+                
+                .schedule-date {
                     font-size: 1.25rem;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin: 0 0 0.5rem 0;
+                    letter-spacing: -0.025em;
                 }
                 
-                .schedule-header p {
-                    margin: 0.25rem 0 0 0;
-                    font-size: 0.9rem;
+                .email-info {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.15rem;
+                }
+                
+                .email-label {
+                    color: #64748b;
+                    font-size: 0.75rem;
+                    font-weight: 500;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+                
+                .email-address {
+                    color: #374151;
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
                 }
                 
                 .schedule-legend {
                     display: flex;
-                    padding: 0.75rem 1.5rem;
-                    background-color: #f8f9fa;
-                    border-bottom: 1px solid #e0e0e0;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 0.5rem 1rem;
+                    background: #f8fafc;
+                    border-bottom: 1px solid #e2e8f0;
+                }
+                
+                .legend-items {
+                    display: flex;
+                    gap: 1.5rem;
                 }
                 
                 .legend-item {
                     display: flex;
                     align-items: center;
-                    margin-right: 1.5rem;
+                    gap: 0.4rem;
+                    font-size: 0.75rem;
+                    color: #475569;
                 }
                 
-                .legend-color {
-                    display: inline-block;
-                    width: 16px;
-                    height: 16px;
-                    border-radius: 4px;
-                    margin-right: 0.5rem;
+                .legend-dot {
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 3px;
                 }
                 
-                .legend-color.busy {
-                    background: linear-gradient(135deg, #e74c3c, #c0392b);
+                .legend-dot.busy {
+                    background: #f87171;
+                    border: 1px solid #f87171;
                 }
                 
-                .legend-color.free {
-                    background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(46, 204, 113, 0.3));
-                    border: 2px dashed #2ecc71;
+                .legend-dot.available {
+                    background: #6ee7b7;
+                    border: 1px solid #6ee7b7;
                 }
                 
-                .legend-text {
-                    font-size: 0.85rem;
-                    color: #495057;
+                .timezone {
+                    font-size: 0.75rem;
+                    color: #64748b;
                 }
                 
-                .timeline-container {
-                    position: relative;
-                    padding: 1rem 0;
+                .timeline-section {
+                    padding: 1rem;
+                    overflow-x: auto;
                 }
                 
-                .time-scale {
+                .time-labels {
                     display: flex;
-                    margin: 0 1rem;
-                    border-bottom: 1px solid #e0e0e0;
+                    margin-bottom: 0.5rem;
+                    min-width: 800px;
+                }
+                
+                .time-slot-group, .time-slot-final {
+                    display: flex;
+                    flex-direction: column;
                     position: relative;
                 }
                 
-                .time-slot-hour {
+                .time-slot-group {
+                    justify-content: space-between;
+                }
+                
+                .time-slot-hour, .time-slot-half {
                     display: flex;
                     flex-direction: column;
                     align-items: center;
-                    position: relative;
+                    flex: 1;
+                    gap: 0.2rem;
+                }
+                
+                .time-slot-final {
+                    align-items: center;
+                    gap: 0.2rem;
                 }
                 
                 .hour-label {
-                    font-size: 0.8rem;
-                    color: #6c757d;
-                    margin-bottom: 0.5rem;
+                    font-size: 0.65rem;
+                    color: #64748b;
+                    text-align: center;
+                }
+                
+                .hour-label.major {
+                    font-weight: 600;
+                    color: #374151;
+                    font-size: 0.7rem;
+                }
+                
+                .hour-label.minor {
                     font-weight: 500;
+                    color: #6b7280;
+                    font-size: 0.6rem;
                 }
                 
                 .hour-line {
                     width: 1px;
-                    height: 20px;
-                    background-color: #e0e0e0;
+                    height: 10px;
                 }
                 
-                .schedule-timeline {
+                .hour-line.major {
+                    background: #374151;
+                    height: 14px;
+                    width: 2px;
+                }
+                
+                .hour-line.minor {
+                    background: #6b7280;
+                    height: 8px;
+                    width: 1.5px;
+                }
+                
+                .timeline-grid {
                     position: relative;
-                    height: 120px;
-                    margin: 0 1rem;
+                    height: 80px;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 6px;
+                    background: #ffffff;
+                    min-width: 800px;
+                }
+                
+                .timeline-track {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
                     background: repeating-linear-gradient(
                         to right,
-                        transparent,
-                        transparent ${HOUR_WIDTH_PX - 1}px,
-                        #f5f5f5 ${HOUR_WIDTH_PX - 1}px,
-                        #f5f5f5 ${HOUR_WIDTH_PX}px
+                        transparent 0%,
+                        transparent 4.9%,
+                        rgba(107, 114, 128, 0.3) 4.9%,
+                        rgba(107, 114, 128, 0.3) 5%,
+                        transparent 5%,
+                        transparent 9.9%,
+                        rgba(55, 65, 81, 0.4) 9.9%,
+                        rgba(55, 65, 81, 0.4) 10%
                     );
                 }
                 
                 .schedule-event {
                     position: absolute;
-                    top: 10px;
-                    bottom: 10px;
+                    top: 6px;
+                    bottom: 6px;
                     border-radius: 6px;
-                    padding: 8px;
-                    font-size: 0.8rem;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-                    overflow: hidden;
+                    padding: 0.3rem;
                     cursor: pointer;
-                    transition: all 0.2s ease;
+                    transition: all 0.3s ease;
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
+                    min-width: 50px;
+                    z-index: 2;
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+                    overflow: hidden;
                 }
                 
                 .schedule-event:hover {
                     transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
                     z-index: 10;
                 }
                 
                 .event-busy {
-                    background: linear-gradient(135deg, #e74c3c, #c0392b);
-                    color: white;
+                    background: linear-gradient(135deg, #f87171, #fb7185) !important;
+                    color: white !important;
+                    border: 1px solid #f87171 !important;
+                }
+                
+                .event-busy:hover {
+                    background: linear-gradient(135deg, #fb7185, #f87171) !important;
                 }
                 
                 .event-free {
-                    background: linear-gradient(135deg, rgba(46, 204, 113, 0.15), rgba(46, 204, 113, 0.25));
-                    border: 2px dashed #27ae60;
-                    color: #27ae60;
+                    background: linear-gradient(135deg, #6ee7b7, #34d399) !important;
+                    color: white !important;
+                    border: 1px solid #6ee7b7 !important;
+                }
+                
+                .event-free:hover {
+                    background: linear-gradient(135deg, #34d399, #6ee7b7) !important;
                 }
                 
                 .event-content {
                     text-align: center;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
                 }
                 
                 .event-title {
                     font-weight: 600;
-                    line-height: 1.2;
-                    margin-bottom: 2px;
-                    font-size: 0.75rem;
+                    font-size: 0.6rem;
+                    line-height: 1.1;
+                    margin-bottom: 0.1rem;
+                    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
                 }
                 
                 .event-time {
-                    font-size: 0.7rem;
+                    font-size: 0.55rem;
                     opacity: 0.9;
-                    line-height: 1.2;
+                    line-height: 1.1;
+                    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
                 }
-                
-                .event-free .event-time {
-                    color: #219653;
-                }
-                
+
                 .event-tooltip {
                     visibility: hidden;
                     position: absolute;
-                    bottom: calc(100% + 10px);
+                    bottom: calc(100% + 8px);
                     left: 50%;
                     transform: translateX(-50%);
-                    background-color: #2c3e50;
+                    background: #1f2937;
                     color: white;
-                    padding: 10px 14px;
-                    border-radius: 8px;
-                    font-size: 0.8rem;
-                    z-index: 100;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                    max-width: 220px;
-                    width: max-content;
-                    text-align: center;
+                    padding: 0.5rem 0.75rem;
+                    border-radius: 6px;
+                    font-size: 0.7rem;
+                    z-index: 1000;
+                    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+                    white-space: nowrap;
                     opacity: 0;
-                    transition: opacity 0.2s ease;
+                    transition: all 0.3s ease;
+                }
+                
+                .event-tooltip::after {
+                    content: '';
+                    position: absolute;
+                    top: 100%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    border: 5px solid transparent;
+                    border-top-color: #1f2937;
                 }
                 
                 .schedule-event:hover .event-tooltip {
@@ -1090,49 +626,113 @@ after_save: function(frm) {
                 }
                 
                 .schedule-footer {
-                    padding: 0.75rem 1.5rem;
-                    background-color: #f8f9fa;
-                    border-top: 1px solid #e0e0e0;
-                    text-align: center;
-                    font-size: 0.85rem;
+                    padding: 1rem;
+                    background: #f8fafc;
+                    border-top: 1px solid #e2e8f0;
+                }
+                
+                .footer-stats {
+                    display: flex;
+                    gap: 2rem;
+                }
+                
+                .stat {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 0.2rem;
+                }
+                
+                .stat-number {
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: #1e293b;
+                }
+                
+                .stat-label {
+                    font-size: 0.65rem;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
                 }
                 
                 @media (max-width: 768px) {
-                    .professional-schedule-container {
+                    .schedule-container {
                         border-radius: 6px;
-                        margin: 0 10px;
                     }
                     
                     .schedule-header {
-                        padding: 1rem;
+                        padding: 0.75rem;
                     }
                     
-                    .schedule-header h4 {
+                    .header-content {
+                        flex-direction: column;
+                        gap: 1rem;
+                        align-items: flex-start;
+                    }
+                    
+                    .schedule-date {
                         font-size: 1.1rem;
                     }
                     
-                    .time-scale, .schedule-timeline {
-                        margin: 0 0.5rem;
+                    .email-address {
+                        font-size: 0.8rem;
+                        word-break: break-all;
                     }
                     
-                    .hour-label {
-                        font-size: 0.7rem;
+                    .schedule-legend {
+                        padding: 0.5rem 1rem;
+                        flex-direction: column;
+                        gap: 0.75rem;
+                        align-items: flex-start;
                     }
                     
-                    .schedule-event {
-                        padding: 6px;
+                    .timeline-section {
+                        padding: 0.75rem;
+                    }
+                    
+                    .hour-label.major {
+                        font-size: 0.65rem;
+                    }
+                    
+                    .hour-label.minor {
+                        font-size: 0.6rem;
+                    }
+                    
+                    .event {
+                        padding: 0.3rem;
                     }
                     
                     .event-title {
-                        font-size: 0.7rem;
-                    margin-bottom: 0;
-                    overflow: hidden;
-                        text-overflow: ellipsis;
-                        white-space: nowrap;
+                        font-size: 0.55rem;
+                        margin-bottom: 0.1rem;
                     }
                     
                     .event-time {
+                        font-size: 0.5rem;
+                    }
+                    
+                    .footer-stats {
+                        gap: 1.5rem;
+                        justify-content: center;
+                    }
+                }
+                
+                @media (max-width: 480px) {
+                    .hour-label.minor {
                         display: none;
+                    }
+                    
+                    .event-title {
+                        font-size: 0.5rem;
+                    }
+                    
+                    .event-time {
+                        font-size: 0.45rem;
+                    }
+                    
+                    .footer-stats {
+                        gap: 1rem;
                     }
                 }
             </style>
@@ -1162,3 +762,245 @@ after_save: function(frm) {
         return slots;
     }
 });
+
+// frappe.ui.form.on('Schedule interview', {
+//     refresh: function(frm) {
+//         frm.toggle_display('available_slots_section', false);
+//     },
+
+//     after_save: function(frm) {
+//         if (!frm.doc.interviewer_email || !frm.doc.attendees || !frm.doc.interview_date || !frm.doc.start_time || !frm.doc.end_time) {
+//             frappe.msgprint(__('Please fill Interviewer Email, Interviewee Email, Date, Start Time and End Time.'));
+//             return;
+//         }
+//         const startDateTime = moment(frm.doc.interview_date + " " + frm.doc.start_time).format("YYYY-MM-DDTHH:mm:ss");
+//         const endDateTime = moment(frm.doc.interview_date + " " + frm.doc.end_time).format("YYYY-MM-DDTHH:mm:ss");
+
+//         frappe.call({
+//             method: "ms_calendar.api.msgraph.create_calendar_event",
+//             args: {
+//                 event_title: frm.doc.event_title || "Interview",
+//                 start_datetime: startDateTime,
+//                 end_datetime: endDateTime,
+//                 interviewer_email: frm.doc.interviewer_email,
+//                 interviewee_email: frm.doc.attendees
+//             },
+//             freeze: true,
+//             freeze_message: __("Creating calendar event..."),
+//             callback: function(r) {
+//                 if (r.message) {
+//                     frappe.msgprint({
+//                         title: __("Success"),
+//                         message: __("Interview scheduled successfully! Event ID: ") + r.message.event_id,
+//                         indicator: "green"
+//                     });
+//                 }
+//             },
+//             error: function(err) {
+//                 frappe.msgprint({
+//                     title: __("Error"),
+//                     message: __("Failed to create calendar event. Please check the console."),
+//                     indicator: "red"
+//                 });
+//                 console.error("Calendar Event Error:", err);
+//             }
+//         });
+//     },
+
+//     check_availability: function(frm) {
+//         if (!frm.doc.interviewer_email || !frm.doc.interview_date) {
+//             frappe.msgprint({
+//                 title: __('Missing Information'),
+//                 indicator: 'red',
+//                 message: __('Please enter interviewer email and interview date.')
+//             });
+//             return;
+//         }
+
+//         frm.get_field('available_slots').$wrapper.html(`
+//             <div class="availability-loader">
+//                 <div class="spinner-border text-primary" role="status">
+//                     <span class="sr-only">Loading...</span>
+//                 </div>
+//                 <h5 class="mt-3">Checking availability...</h5>
+//                 <p class="text-muted">We're checking ${frm.doc.interviewer_email}'s schedule for ${frm.doc.interview_date}</p>
+//             </div>
+//         `);
+//         frm.toggle_display('available_slots_section', true);
+
+//         frappe.call({
+//             method: 'ms_calendar.api.msgraph.get_schedule_free_slots',
+//             args: {
+//                 interviewer_email: frm.doc.interviewer_email,
+//                 interview_date: frm.doc.interview_date
+//             },
+//             callback: function(r) {
+//                 if (r.message) {
+//                     const processedEvents = r.message.map(interval => {
+//                         const startUtc = moment.utc(interval.start.dateTime);
+//                         const endUtc = moment.utc(interval.end.dateTime);
+
+//                         const start = startUtc.local();
+//                         const end = endUtc.local();
+
+//                         return {
+//                             title: interval.subject || "Busy",
+//                             type: interval.location?.displayName || "Meeting",
+//                             attendee: interval.organizer?.emailAddress?.name || "Unknown",
+//                             startHour: start.hours() + start.minutes() / 60,
+//                             endHour: end.hours() + end.minutes() / 60,
+//                             displayStartTime: start.format("h:mm A"),
+//                             displayEndTime: end.format("h:mm A"),
+//                         };
+//                     });
+//                     frm.events.display_schedule_design(frm, processedEvents);
+//                 } else {
+//                     frm.get_field('available_slots').$wrapper.html(`
+//                         <div class="alert alert-danger" role="alert">
+//                             <strong>Error:</strong> Could not fetch availability.
+//                         </div>
+//                     `);
+//                 }
+//             }
+//         });
+//     },
+
+//     display_schedule_design: function(frm, events) {
+//         const scheduleHtml = frm.events.generate_schedule_html(frm, events);
+//         frm.get_field('available_slots').$wrapper.html(scheduleHtml);
+
+//         setTimeout(() => {
+//             $('.schedule-event').on('click', function() {
+//                 const startTime = $(this).data('start');
+//                 const endTime = $(this).data('end');
+//                 const title = $(this).data('title') || 'Available Slot';
+//                 const attendee = $(this).data('attendee') || '';
+//                 const type = $(this).data('type') || '';
+
+//                 frappe.msgprint({
+//                     title: title === 'Available Slot' ? 'Available Time Slot' : 'Event Details',
+//                     message: `
+//                         <div class="event-details">
+//                             <p><strong>${title}</strong></p>
+//                             <p><strong>Time:</strong> ${startTime} - ${endTime}</p>
+//                             ${attendee ? `<p><strong>Attendee:</strong> ${attendee}</p>` : ''}
+//                             ${type ? `<p><strong>Type:</strong> ${type}</p>` : ''}
+//                         </div>
+//                     `
+//                 });
+//             });
+//         }, 300);
+//     },
+
+//     generate_schedule_html: function(frm, events) {
+//         const day_start_hour = 8;
+//         const day_end_hour = 18;
+//         const total_hours = day_end_hour - day_start_hour;
+
+//         // Color mapping for events
+//         const colorMap = {
+//             "Meeting": "event-meeting",
+//             "Call": "event-call",
+//             "Interview": "event-interview",
+//             "Busy": "event-busy",
+//             "Default": "event-busy"
+//         };
+
+//         // Generate events HTML
+//         let eventsHtml = '';
+//         events.forEach(event => {
+//             if (event.endHour <= day_start_hour || event.startHour >= day_end_hour) return;
+
+//             const startHour = Math.max(event.startHour, day_start_hour);
+//             const endHour = Math.min(event.endHour, day_end_hour);
+//             const leftPercentage = ((startHour - day_start_hour) / total_hours) * 100;
+//             const widthPercentage = ((endHour - startHour) / total_hours) * 100;
+
+//             const cssClass = colorMap[event.type] || colorMap["Default"];
+
+//             eventsHtml += `
+//                 <div class="schedule-event ${cssClass}"
+//                      data-start="${event.displayStartTime}"
+//                      data-end="${event.displayEndTime}"
+//                      data-title="${event.title}"
+//                      data-attendee="${event.attendee}"
+//                      data-type="${event.type}"
+//                      style="left: ${leftPercentage}%; width: ${widthPercentage}%;">
+//                     <div class="event-content">
+//                         <div class="event-title">${event.title}</div>
+//                         <div class="event-time">${event.displayStartTime} - ${event.displayEndTime}</div>
+//                     </div>
+//                     <div class="event-tooltip">
+//                         <strong>${event.title}</strong><br>
+//                         ${event.displayStartTime} - ${event.displayEndTime}<br>
+//                         <em>${event.type}</em>
+//                     </div>
+//                 </div>
+//             `;
+//         });
+
+//         // Free slots
+//         const freeSlots = frm.events.calculate_free_slots(events, day_start_hour, day_end_hour);
+//         freeSlots.forEach(slot => {
+//             const leftPercentage = ((slot.start - day_start_hour) / total_hours) * 100;
+//             const widthPercentage = ((slot.end - slot.start) / total_hours) * 100;
+//             if (widthPercentage > 0) {
+//                 const startFormatted = moment().hour(Math.floor(slot.start)).minute((slot.start % 1) * 60).format("h:mm A");
+//                 const endFormatted = moment().hour(Math.floor(slot.end)).minute((slot.end % 1) * 60).format("h:mm A");
+
+//                 eventsHtml += `
+//                     <div class="schedule-event event-free"
+//                          data-start="${startFormatted}"
+//                          data-end="${endFormatted}"
+//                          data-title="Available Slot"
+//                          style="left: ${leftPercentage}%; width: ${widthPercentage}%;">
+//                         <div class="event-content">
+//                             <div class="event-title">Available</div>
+//                             <div class="event-time">${startFormatted} - ${endFormatted}</div>
+//                         </div>
+//                         <div class="event-tooltip">
+//                             <strong>Available Slot</strong><br>
+//                             ${startFormatted} - ${endFormatted}
+//                         </div>
+//                     </div>
+//                 `;
+//             }
+//         });
+
+//         return `
+//             <div class="schedule-container">
+//                 <div class="timeline-grid">
+//                     ${eventsHtml}
+//                 </div>
+//             </div>
+//             <style>
+//                 .schedule-event { position: absolute; top:6px; bottom:6px; border-radius:6px; padding:4px; cursor:pointer; }
+//                 .event-tooltip { visibility:hidden; opacity:0; transition:all 0.3s ease; position:absolute; bottom:110%; left:50%; transform:translateX(-50%); background:#111; color:#fff; padding:6px 10px; border-radius:4px; white-space:nowrap; }
+//                 .schedule-event:hover .event-tooltip { visibility:visible; opacity:1; }
+
+//                 .event-busy { background:#ef4444; color:white; }
+//                 .event-free { background:#10b981; color:white; }
+//                 .event-meeting { background:#3b82f6; color:white; }
+//                 .event-call { background:#f59e0b; color:white; }
+//                 .event-interview { background:#8b5cf6; color:white; }
+//             </style>
+//         `;
+//     },
+
+//     calculate_free_slots: function(events, day_start_hour, day_end_hour) {
+//         const slots = [];
+//         let currentHour = day_start_hour;
+//         const sortedEvents = events.filter(e => e.endHour > day_start_hour && e.startHour < day_end_hour)
+//             .sort((a, b) => a.startHour - b.startHour);
+//         sortedEvents.forEach(event => {
+//             if (currentHour < event.startHour) {
+//                 slots.push({ start: currentHour, end: event.startHour });
+//             }
+//             currentHour = Math.max(currentHour, event.endHour);
+//         });
+//         if (currentHour < day_end_hour) {
+//             slots.push({ start: currentHour, end: day_end_hour });
+//         }
+//         return slots;
+//     }
+// });

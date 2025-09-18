@@ -54,12 +54,12 @@
   {
    "fieldname": "event_title",
    "fieldtype": "Data",
-   "label": "Event title"
+   "label": "Event Title"
   },
   {
    "fieldname": "attendees",
    "fieldtype": "Data",
-   "label": "Attendees"
+   "label": "Candidate Email"
   },
   {
    "fieldname": "column_break_qwyn",
